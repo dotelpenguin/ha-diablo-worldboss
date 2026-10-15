@@ -266,3 +266,12 @@ Assistant code.
   order, advancing-clock request, and actual rate-limit regression tests.
 - Retained actual fetch error messages and removed duplicate missing-source errors.
 - Integration version bumped to 0.1.1; all 22 tests pass.
+
+### HACS documentation cleanup
+
+- Rewrote README around HACS install, immediate setup fetch, entities, update
+  intervals, upgrades, troubleshooting, and supported data coverage.
+- Moved CLI/schema/testing/maintenance details into docs/development.md.
+- Removed duplicate headings and outdated default-branch installation guidance.
+- Improved setup/options descriptions and synchronized English translations.
+- Integration version 0.1.2 includes the updated setup text.

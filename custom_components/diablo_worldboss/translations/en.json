@@ -4,9 +4,12 @@
     "step": {
       "user": {
         "title": "Diablo World Events",
-        "description": "Read public Helltides event data. Event states become unavailable when schedule coverage expires.",
+        "description": "Track Diablo IV Helltides, world bosses, and Legion events using Helltides.com. Data is fetched when setup completes. Choose how often to check for updates; 5 minutes is recommended.",
         "data": {
-          "interval_minutes": "Fetch interval (minutes, 5\u2013120)"
+          "interval_minutes": "Update interval (minutes)"
+        },
+        "data_description": {
+          "interval_minutes": "Choose 5–120 minutes. Longer intervals can leave events unavailable when known schedule data expires."
         }
       }
     },
@@ -17,9 +20,13 @@
   "options": {
     "step": {
       "init": {
-        "title": "Polling options",
+        "title": "Event updates",
         "data": {
-          "interval_minutes": "Fetch interval (minutes, 5\u2013120)"
+          "interval_minutes": "Update interval (minutes)"
+        },
+        "description": "Choose how often to fetch new event data. Known event transitions update between fetches. Saving fetches new data immediately.",
+        "data_description": {
+          "interval_minutes": "Choose 5–120 minutes. Longer intervals can leave events unavailable when known schedule data expires."
         }
       }
     }

@@ -1,145 +1,109 @@
-# Diablo events CLI
+# Diablo World Events
 
-A CLI-first Python reader for the public event records used by Helltides.com.
-Includes a standalone CLI and a custom Home Assistant integration.
+Track Diablo IV Helltides, world bosses, and Legion events in Home Assistant
+using data from [Helltides.com](https://helltides.com/).
 
-Requires Python 3.11 or newer. Run directly from this checkout:
+See whether a Helltide is active, view upcoming spawn times and boss locations,
+and use timestamp sensors in dashboards and automations.
 
-```sh
-PYTHONPATH=src python3 -m diablo_events fetch --pretty
-PYTHONPATH=src python3 -m diablo_events watch --interval-minutes 5
-PYTHONPATH=src python3 -m diablo_events watch --interval-minutes 120 --count 3
-PYTHONPATH=src python3 -m diablo_events fetch --pretty --capture /tmp/events.json
-PYTHONPATH=src python3 -m diablo_events parse --fixture tests/fixtures/live.json --at 2026-10-14T15:10:00Z --pretty
-PYTHONPATH=src python3 -m unittest discover -s tests -v
-```
+## Requirements
 
-Alternatively install with `python3 -m pip install -e .` and use `diablo-events`.
-No runtime dependencies are needed for this initial implementation. The transport
-uses bounded standard-library HTTP requests in worker threads; it will need a
-Home Assistant-owned async session adapter before integration work.
+- Home Assistant **2026.10.1 or newer**. Runtime tests use 2026.10.1.
+- [HACS](https://www.hacs.xyz/) installed for the recommended installation method.
+- Internet access to retrieve event data.
 
-JSON is written to stdout and diagnostics to stderr. Exit codes: 0 complete,
-1 failure, 2 invalid arguments, 3 partial or exhausted coverage. Captures contain
-source URLs, source data/errors, and capture time. Replay needs a timezone-aware
-`--at` timestamp. Captures are overwritten only at the explicitly supplied path.
+## Install with HACS
 
-Output schema version 1 includes Helltide state, next world boss, ordered upcoming
-events, health, and per-source coverage. UTC event times end in `Z`; durations are
-integer seconds. Boss `locations` preserve all source-reported boss/location
-pairs. An event's primary `name` is not necessarily the boss for every location.
+This integration is available as a custom repository.
 
-At a boss or Legion spawn time, the next event is selected from `nextTime`.
-Future boss identity and locations remain unknown until the source supplies them.
-This handoff describes the next spawn, not how long the current fight remains active.
-An expired Helltide record yields `active: null`, rather than an invented schedule.
-Coverage exhaustion or a broken individual source produces partial output.
-`last_success_at` describes the latest complete retrieval in the current process.
-Watch retains valid records in memory after refresh failures, marks them stale,
-and clears stale status after recovery. It does not persist data across restarts. Freshness means usable source coverage, not proof of upstream age.
+1. Open **HACS** in Home Assistant.
+2. Open the top-right menu and select **Custom repositories**.
+3. Enter `https://github.com/dotelpenguin/ha-diablo-worldboss` and select
+   **Integration** as the type, then add the repository.
+4. Find **Diablo World Events** in HACS and download it.
+5. **Restart Home Assistant** after the download completes.
+6. Open **Settings → Devices & services → Add integration** and search for
+   **Diablo World Events**.
+7. Choose an update interval and submit. The integration fetches data immediately
+   during setup, then refreshes on the selected interval.
 
-Current coverage: Helltide, world boss, and Legion. Realmwalker and the full
-schedule are not supported. Watch mode emits compact JSON Lines after each poll and at known event boundaries.
-The fetch interval accepts 5–120 minutes; local transitions do not trigger HTTP.
-`--count` limits emitted snapshots, including boundary updates. Ctrl-C exits cleanly.
-Transient network errors and HTTP 429/500/502/503/504 get up to three attempts
-with bounded backoff; malformed payloads and other HTTP failures are not retried.
-Retry-After delays over 30 seconds end the current attempt sequence.
-Persistent storage, longer schedule coverage, and UI comparison remain pending. See
-[the discovery notes](docs/source-discovery.md) and [the plan](plan.md).
+No account, API key, YAML configuration, or separate Python installation is needed.
 
+### Manual installation
 
-## Home Assistant installation
+Copy the `custom_components/diablo_worldboss` directory from this repository into
+`<config>/custom_components/diablo_worldboss` in your Home Assistant configuration.
+Restart Home Assistant, then follow steps 6–7 above.
 
-1. Copy `custom_components/diablo_worldboss` from this repository into your Home
-   Assistant configuration directory under `custom_components/diablo_worldboss`.
-2. Restart Home Assistant.
-3. Open **Settings → Devices & services → Add integration**, search for
-   **Diablo World Events**, and choose a fetch interval from 5 to 120 minutes.
-4. Change the interval through the integration's options. Changes reload the entry.
+## Entities
 
-No YAML configuration or separate Python package installation is needed. The
-component bundles the same parsing, schedule, and cache code used by the CLI.
-After editing canonical modules in `src/diablo_events`, run
-`python3 scripts/sync_shared.py`; the tests check that bundled copies match.
+All entities are grouped under the **Diablo World Events** device. Entity IDs
+may vary if you rename entities or have previously installed the integration.
 
-Entities on the service device:
+| Entity | What it shows |
+| --- | --- |
+| Source health | On when all required sources are usable; off for partial results, fetch failures, or expired event coverage. Attributes include errors and the last attempt/success times. |
+| Helltide active | Whether the known Helltide window is active. Attributes include its start, end, next start when known, and zone ID. |
+| Helltide next transition | When the active Helltide ends, or when the next known Helltide begins. |
+| Next world boss | The source's primary boss name. Attributes preserve all reported boss/location pairs, including simultaneous bosses in different regions. |
+| Next world boss time | The next known world boss spawn time, even when its name is not yet available. |
+| Next upcoming event | The earliest known upcoming Helltide, world boss, or Legion event. |
+| Next upcoming event time | The start time of that upcoming event. |
+| Refresh | Request new event data without waiting for the interval. Repeated requests within 30 seconds may be combined. |
 
-- Source health and Helltide active binary sensors.
-- Helltide next transition timestamp.
-- Next world boss name and spawn timestamp, with all source boss/location pairs
-  in attributes. Unknown boss names do not hide a known spawn timestamp.
-- Next upcoming event name and timestamp.
-- Refresh button, debounced for 30 seconds across entities.
+Timestamp sensors display in your configured timezone. They represent event
+times; they do not count down every second.
 
-The coordinator uses Home Assistant's HTTP session. Scheduled callbacks update
-local state at known event boundaries without delaying the next network poll.
-Partial refresh failures retain previously valid records; expired records become
-unavailable. Source health turns off for failed, partial, or exhausted results.
-Initial setup retries when no source can supply a valid record. Cache is held in
-memory and does not survive a restart. Diagnostics can be downloaded from the
-integration menu.
+## Update interval
 
-A two-hour interval can exceed source coverage. This produces unavailable event
-states until the next fetch; choose five minutes for more frequent source data.
-The schedule endpoint and boss voting overrides remain outside this version's
-supported sources. Manual refresh requests use the same coordinator and honor
-rate-limit delays received from the source.
+The default is **5 minutes**; the supported range is **5–120 minutes**. Change it
+through the integration's options under **Settings → Devices & services**.
+Saving options reloads the integration and fetches new data.
 
-Runtime tests pass against **Home Assistant 2026.10.1 / Python 3.14.8**. Run the
-full suite in a Python environment with that Home Assistant version installed:
+Known event transitions update locally between fetches. A longer interval can
+outlast the schedule information supplied by the source. In that case affected
+entities become unavailable until a fetch supplies another event. Five minutes
+is recommended for regular use.
 
-```sh
-PYTHONPATH=src:. python3 -m unittest discover -s tests -v
-```
+## Updates
 
-Tests cover shared logic, entities, coordinator failure/recovery, timer cleanup,
-interval validation, refresh routing, and unload routing. A complete UI setup,
-restart, options reload, and automation smoke test in a running Home Assistant
-instance is still pending; this is the initial custom integration release.
-# ha-diablo-worldboss
-# ha-diablo-worldboss
-# ha-diablo-worldboss
-# ha-diablo-worldboss
-# ha-diablo-worldboss
+Download updates through HACS, then restart Home Assistant to load the new code.
+For manual installations, replace the integration directory and restart.
 
+## Troubleshooting
 
-## HACS development installation
+**The integration does not appear in Add integration:** confirm the HACS download
+completed and restart Home Assistant. Refresh your browser if the list is stale.
 
-Add `https://github.com/dotelpenguin/ha-diablo-worldboss` under HACS → Custom
-repositories, with type **Integration**. Download **Diablo World Events**, restart
-Home Assistant, then add the integration under Settings → Devices & services.
+**Some entities are unknown or unavailable:** check the Source health attributes.
+The source may not yet provide a boss name, location, or future event. Select
+**Refresh** to fetch again. A known spawn time can remain available while its
+boss name is unknown.
 
-Development work is on the `dev` branch. HACS uses the repository's default
-branch when no releases are published. For branch-based development installation,
-`dev` must be the GitHub default branch; adding a `/tree/dev` URL does not select
-that branch in HACS. Otherwise use the manual installation above until a release
-is available. Repository default-branch settings are managed separately from
-local commits.
+**Source health is off:** inspect its `health.errors` and `last_attempt_at`
+attributes. Check Home Assistant's network access and logs, then try Refresh.
+The integration retains usable data after a failed fetch, marks it stale, and
+stops presenting expired records as current events. Rate-limited requests wait
+until the source permits another attempt.
 
-## Repository validation
+**HACS reports a repository structure error:** use the repository URL above,
+without `/tree/dev`. HACS installs from the default branch when no release is
+selected; the integration files are available on `main`.
 
-GitHub Actions runs the official HACS integration validator, Home Assistant
-Hassfest, and tests against the pinned Home Assistant version on pushes and pull
-requests. The workflow also supports manual runs and a weekly check. These checks
-validate packaging; installation in a running HA instance remains a separate test.
+For help, [open an issue](https://github.com/dotelpenguin/ha-diablo-worldboss/issues)
+with your Home Assistant version, integration version, and relevant errors.
+Diagnostics are available from the integration's menu in Devices & services.
 
-Run local packaging and runtime checks with:
+## Data coverage
 
-```sh
-python3 scripts/validate_repository.py
-python3 -m pip install -r requirements-test.txt
-PYTHONPATH=src:. python3 -m unittest discover -s tests -v
-```
+The integration reads Helltide, world boss, and Legion records. Boss voting
+location overrides, Realmwalker events, and a complete long-range schedule are
+not currently included. Locations reflect the source records and may differ
+from the website's voting-derived display. Cached data does not survive a restart.
 
-The repository must stay public. In GitHub's About settings, add relevant topics
-such as `home-assistant`, `hacs`, `diablo4`, and `custom-integration`; keep its
-description set. Before HACS installation, make the integration available on the
-default branch or publish a release containing it. Development on `dev` alone
-is insufficient when `main` is the default branch and contains no integration.
-The GitHub default branch has not been changed by this project setup.
+This is a community integration, unaffiliated with Blizzard Entertainment or
+Helltides.com. Event availability and accuracy depend on the upstream data.
 
-Requirements referenced: [HACS general requirements](https://www.hacs.xyz/docs/publish/start/)
-and [integration requirements](https://www.hacs.xyz/docs/publish/integration/).
-Custom repository compatibility does not mean inclusion in HACS's default catalog;
-that has a separate submission process.
+For CLI usage, testing, and repository maintenance, see
+[the developer guide](docs/development.md). Source details are in
+[the discovery notes](docs/source-discovery.md).
