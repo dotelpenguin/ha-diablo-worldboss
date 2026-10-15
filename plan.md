@@ -244,3 +244,16 @@ Assistant code.
 - Running-instance UI setup/restart/options/automation checks remain pending.
   Rendered site parity, live rollover observation, broader schedule coverage,
   and boss override merging remain documented limitations.
+
+### HACS conformance audit — October 15, 2026
+
+- Added official HACS and Hassfest CI jobs plus pinned Home Assistant runtime tests.
+- Added local packaging validation: one self-contained integration, required
+  metadata, sorted manifest, PNG icon, synchronized shared modules/translations.
+- Declared single-config-entry support in the integration manifest.
+- Local packaging checks and all 19 runtime/shared tests pass.
+- Public repository and issue tracker verified. GitHub topics are empty; maintainer
+  must add topics in About settings. Default branch remains main; dev must be
+  released or made the default/merged before HACS can install the integration.
+- Official CI results and a running-instance installation test remain necessary
+  before claiming full HACS readiness.

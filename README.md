@@ -116,3 +116,30 @@ branch when no releases are published. For branch-based development installation
 that branch in HACS. Otherwise use the manual installation above until a release
 is available. Repository default-branch settings are managed separately from
 local commits.
+
+## Repository validation
+
+GitHub Actions runs the official HACS integration validator, Home Assistant
+Hassfest, and tests against the pinned Home Assistant version on pushes and pull
+requests. The workflow also supports manual runs and a weekly check. These checks
+validate packaging; installation in a running HA instance remains a separate test.
+
+Run local packaging and runtime checks with:
+
+```sh
+python3 scripts/validate_repository.py
+python3 -m pip install -r requirements-test.txt
+PYTHONPATH=src:. python3 -m unittest discover -s tests -v
+```
+
+The repository must stay public. In GitHub's About settings, add relevant topics
+such as `home-assistant`, `hacs`, `diablo4`, and `custom-integration`; keep its
+description set. Before HACS installation, make the integration available on the
+default branch or publish a release containing it. Development on `dev` alone
+is insufficient when `main` is the default branch and contains no integration.
+The GitHub default branch has not been changed by this project setup.
+
+Requirements referenced: [HACS general requirements](https://www.hacs.xyz/docs/publish/start/)
+and [integration requirements](https://www.hacs.xyz/docs/publish/integration/).
+Custom repository compatibility does not mean inclusion in HACS's default catalog;
+that has a separate submission process.

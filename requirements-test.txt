@@ -1,0 +1,2 @@
+# Runtime API baseline used by integration tests.
+homeassistant==2026.10.1
