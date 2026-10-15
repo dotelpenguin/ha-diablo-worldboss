@@ -1,4 +1,4 @@
-# Diablo World Events
+# Diablo World Events Home Assistant Integration
 
 Track Diablo IV Helltides, world bosses, and Legion events in Home Assistant
 using data from [Helltides.com](https://helltides.com/).
@@ -6,34 +6,62 @@ using data from [Helltides.com](https://helltides.com/).
 See whether a Helltide is active, view upcoming spawn times and boss locations,
 and use timestamp sensors in dashboards and automations.
 
-## Requirements
+## Developer Note
 
-- Home Assistant **2026.10.1 or newer**. Runtime tests use 2026.10.1.
-- [HACS](https://www.hacs.xyz/) installed for the recommended installation method.
-- Internet access to retrieve event data.
+This is a community project. Suggestions, bug reports, pull requests, and forks
+are welcome. CLI tools and testing instructions are in the
+[developer guide](docs/development.md).
 
-## Install with HACS
+## Features
 
-This integration is available as a custom repository.
+- Helltide active status, region, and next transition time.
+- Upcoming world boss names, spawn times, and reported locations.
+- Upcoming Legion event times.
+- Timestamp sensors for dashboards and automations.
+- Configurable updates from 5 to 120 minutes, with an immediate fetch at setup.
+- Local state changes at known event boundaries between updates.
+- A manual refresh button and source-health diagnostics.
+- Configuration through the Home Assistant UI.
 
-1. Open **HACS** in Home Assistant.
-2. Open the top-right menu and select **Custom repositories**.
-3. Enter `https://github.com/dotelpenguin/ha-diablo-worldboss` and select
-   **Integration** as the type, then add the repository.
-4. Find **Diablo World Events** in HACS and download it.
-5. **Restart Home Assistant** after the download completes.
-6. Open **Settings → Devices & services → Add integration** and search for
-   **Diablo World Events**.
-7. Choose an update interval and submit. The integration fetches data immediately
-   during setup, then refreshes on the selected interval.
+## Installation
+
+### Via HACS (Recommended)
+
+1. Open **HACS** and choose **Custom repositories** from the top-right menu.
+2. Add `https://github.com/dotelpenguin/ha-diablo-worldboss` with type
+   **Integration**.
+3. Find **Diablo World Events** in HACS and download it.
+4. Restart Home Assistant.
+5. Add the integration through the UI as described below.
+
+### Manual Installation
+
+1. Copy `custom_components/diablo_worldboss` into your Home Assistant
+   `<config>/custom_components` directory.
+2. Restart Home Assistant.
+3. Add the integration through the UI.
+
+## Configuration
+
+### Initial Setup
+
+1. Go to **Settings → Devices & services**.
+2. Select **Add integration** and search for **Diablo World Events**.
+3. Set **Update interval (minutes)**. The default is **5**; allowed values are
+   **5–120**.
+4. Submit. Event data is fetched immediately during setup.
 
 No account, API key, YAML configuration, or separate Python installation is needed.
 
-### Manual installation
+### Post-Setup Configuration
 
-Copy the `custom_components/diablo_worldboss` directory from this repository into
-`<config>/custom_components/diablo_worldboss` in your Home Assistant configuration.
-Restart Home Assistant, then follow steps 6–7 above.
+Open **Settings → Devices & services**, find **Diablo World Events**, and open
+its options to change the update interval. Saving options reloads the integration
+and fetches new data without restarting Home Assistant.
+
+Known event transitions update locally between fetches. Longer intervals can
+outlast the source's known schedule, leaving affected entities unavailable until
+another fetch supplies new data. Five minutes is recommended for regular use.
 
 ## Entities
 
@@ -54,16 +82,42 @@ may vary if you rename entities or have previously installed the integration.
 Timestamp sensors display in your configured timezone. They represent event
 times; they do not count down every second.
 
-## Update interval
+## Manual Refresh
 
-The default is **5 minutes**; the supported range is **5–120 minutes**. Change it
-through the integration's options under **Settings → Devices & services**.
-Saving options reloads the integration and fetches new data.
+Select **Refresh** on the Diablo World Events device to request new data.
+Repeated requests within 30 seconds may be combined. Source rate-limit delays
+still apply.
 
-Known event transitions update locally between fetches. A longer interval can
-outlast the schedule information supplied by the source. In that case affected
-entities become unavailable until a fetch supplies another event. Five minutes
-is recommended for regular use.
+## Usage Examples
+
+The entity IDs below are examples. Check **Settings → Devices & services →
+Entities** for the IDs created by your installation and adjust them as needed.
+
+### Dashboard Example
+
+Add a manual card to a dashboard with the following configuration:
+
+```yaml
+type: entities
+title: Diablo World Events
+entities:
+  - binary_sensor.diablo_world_events_helltide_active
+  - sensor.diablo_world_events_helltide_next_transition
+  - sensor.diablo_world_events_next_world_boss
+  - sensor.diablo_world_events_next_world_boss_time
+  - sensor.diablo_world_events_next_upcoming_event
+  - sensor.diablo_world_events_next_upcoming_event_time
+```
+
+### Refresh Action Example
+
+Use the refresh button from a script or automation action:
+
+```yaml
+action: button.press
+target:
+  entity_id: button.diablo_world_events_refresh
+```
 
 ## Updates
 
@@ -94,16 +148,52 @@ For help, [open an issue](https://github.com/dotelpenguin/ha-diablo-worldboss/is
 with your Home Assistant version, integration version, and relevant errors.
 Diagnostics are available from the integration's menu in Devices & services.
 
-## Data coverage
+## Known Issues
+
+### Current Limitations
 
 The integration reads Helltide, world boss, and Legion records. Boss voting
 location overrides, Realmwalker events, and a complete long-range schedule are
 not currently included. Locations reflect the source records and may differ
 from the website's voting-derived display. Cached data does not survive a restart.
 
+## FAQ
+
+**Do I need a Helltides.com account?**
+
+No. The integration reads public event records without credentials.
+
+**Why is a spawn time available while the boss name is unknown?**
+
+The source can provide the next spawn time before its name and location are
+available. The integration keeps those values separate.
+
+**Why can the displayed boss differ by location?**
+
+The source can report simultaneous bosses in different regions. The name sensor
+shows the primary boss; its `locations` attribute contains all reported pairs.
+
+**Does this create a live countdown?**
+
+The time entities are timestamp sensors. They show event times in Home Assistant's
+configured timezone rather than updating a countdown every second.
+
+**Can I configure multiple instances?**
+
+The integration supports one configuration entry for the shared public event feed.
+
+## Requirements
+
+- Home Assistant **2026.10.1 or newer**; runtime tests use 2026.10.1.
+- [HACS](https://www.hacs.xyz/) for the recommended installation method.
+- Internet access to retrieve event data.
+
+## Support
+
+[Report an issue](https://github.com/dotelpenguin/ha-diablo-worldboss/issues) with
+your Home Assistant version, integration version, and relevant error details.
+See [the developer guide](docs/development.md) for CLI usage and testing, and
+[the discovery notes](docs/source-discovery.md) for source behavior.
+
 This is a community integration, unaffiliated with Blizzard Entertainment or
 Helltides.com. Event availability and accuracy depend on the upstream data.
-
-For CLI usage, testing, and repository maintenance, see
-[the developer guide](docs/development.md). Source details are in
-[the discovery notes](docs/source-discovery.md).
