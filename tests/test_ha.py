@@ -99,3 +99,47 @@ class HomeAssistantTest(unittest.IsolatedAsyncioTestCase):
                 coordinator.cancel_boundary()
                 cancel.assert_called_once()
                 self.assertIsNone(coordinator._cancel_boundary)
+
+    async def test_unblocked_read_reaches_network_with_advancing_clock(self):
+        from datetime import timedelta
+        from custom_components.diablo_worldboss.coordinator import EventCoordinator
+        response = Mock()
+        response.status = 200
+        response.raise_for_status = Mock()
+        async def chunks(size):
+            yield b'{"startTime":"2026-10-14T15:00:00Z"}'
+        response.content.iter_chunked = chunks
+        context = AsyncMock()
+        context.__aenter__.return_value = response
+        coordinator = SimpleNamespace(_blocked_until={}, session=Mock())
+        coordinator.session.get.return_value = context
+        ticks = iter(self.now + timedelta(microseconds=i) for i in range(10))
+        with patch('custom_components.diablo_worldboss.coordinator.dt_util.utcnow', side_effect=lambda: next(ticks)):
+            kind, result = await EventCoordinator._read(coordinator, 'helltide')
+        coordinator.session.get.assert_called_once()
+        self.assertIn('data', result)
+        self.assertEqual(kind, 'helltide')
+
+    async def test_actual_rate_limit_blocks_network(self):
+        from datetime import timedelta
+        from custom_components.diablo_worldboss.coordinator import EventCoordinator
+        coordinator = SimpleNamespace(_blocked_until={'helltide': self.now + timedelta(minutes=5)}, session=Mock())
+        with patch('custom_components.diablo_worldboss.coordinator.dt_util.utcnow', return_value=self.now):
+            _, result = await EventCoordinator._read(coordinator, 'helltide')
+        coordinator.session.get.assert_not_called()
+        self.assertIn('Retry-After', result['error']['message'])
+
+    async def test_setup_fetches_before_forwarding_entities(self):
+        from custom_components.diablo_worldboss import async_setup_entry
+        sequence = []
+        coordinator = Mock()
+        async def first_refresh():
+            sequence.append('fetch')
+        async def forward(entry, platforms):
+            sequence.append('entities')
+        coordinator.async_config_entry_first_refresh = AsyncMock(side_effect=first_refresh)
+        hass = SimpleNamespace(config_entries=SimpleNamespace(async_forward_entry_setups=AsyncMock(side_effect=forward)))
+        entry = Mock()
+        with patch('custom_components.diablo_worldboss.EventCoordinator', return_value=coordinator):
+            self.assertTrue(await async_setup_entry(hass, entry))
+        self.assertEqual(sequence, ['fetch', 'entities'])

@@ -31,7 +31,8 @@ class EventCoordinator(DataUpdateCoordinator):
     async def _read(self, kind):
         url = f"{BASE}/{kind}.json"
         try:
-            if dt_util.utcnow() < self._blocked_until.get(kind, dt_util.utcnow()):
+            blocked_until = self._blocked_until.get(kind)
+            if blocked_until is not None and dt_util.utcnow() < blocked_until:
                 raise ValueError("Source rate limited; waiting for Retry-After")
             async with self.session.get(url, timeout=aiohttp.ClientTimeout(total=15),
                                         headers={"Accept": "application/json", "User-Agent": "diablo-worldboss/0.1"}) as response:
@@ -53,7 +54,7 @@ class EventCoordinator(DataUpdateCoordinator):
                 return kind, {"url": url, "data": json.loads(body)}
         except (aiohttp.ClientError, TimeoutError, ValueError, TypeError, OverflowError) as error:
             _LOGGER.debug("Event source %s failed: %s", kind, error)
-            return kind, {"url": url, "error": {"code": "fetch_failed"}}
+            return kind, {"url": url, "error": {"code": "fetch_failed", "message": str(error) or type(error).__name__}}
 
     async def _async_update_data(self):
         bundle = dict(await asyncio.gather(*(self._read(kind) for kind in ('helltide', 'world_boss', 'legion'))))

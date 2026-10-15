@@ -16,8 +16,11 @@ class EventCache:
         for kind in ('helltide', 'world_boss', 'legion'):
             entry = bundle.get(kind, {})
             try:
-                if not isinstance(entry, dict) or 'error' in entry:
-                    raise ValueError('Retrieval failed')
+                if not isinstance(entry, dict):
+                    raise ValueError('Invalid source envelope')
+                if 'error' in entry:
+                    error = entry['error']
+                    raise ValueError(error.get('message', error.get('code', 'Retrieval failed')) if isinstance(error, dict) else str(error))
                 record(entry.get('data'), kind)
                 self.sources[kind] = {**entry, 'retrieved_at': iso(now)}
             except (ValueError, TypeError) as error:
@@ -28,6 +31,9 @@ class EventCache:
     def evaluate(self, now):
         result = snapshot(self.sources, now, self.last_attempt)
         if self.failures:
+            failed_sources = {error['source'] for error in self.failures}
+            result['health']['errors'] = [error for error in result['health']['errors']
+                                          if not (error['code'] == 'invalid_source' and error['source'] in failed_sources)]
             result['health']['errors'].extend(self.failures)
             result['health']['success'] = False
             result['health']['status'] = 'partial' if self.sources else 'error'

@@ -257,3 +257,12 @@ Assistant code.
   released or made the default/merged before HACS can install the integration.
 - Official CI results and a running-instance installation test remain necessary
   before claiming full HACS readiness.
+
+### Setup fetch fix — October 15, 2026
+
+- Fixed false rate limiting from comparing separate clock readings when no block
+  exists. This prevented some initial source requests from reaching the network.
+- Preserved immediate first refresh before entities are forwarded; added setup
+  order, advancing-clock request, and actual rate-limit regression tests.
+- Retained actual fetch error messages and removed duplicate missing-source errors.
+- Integration version bumped to 0.1.1; all 22 tests pass.
