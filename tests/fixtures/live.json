@@ -1,0 +1,46 @@
+{
+  "captured_at": "2026-10-14T14:56:43.327001Z",
+  "sources": {
+    "helltide": {
+      "url": "https://helltides-7e530-r1.firebaseio.com/helltide.json",
+      "data": {
+        "endTime": "2026-10-14T15:55:00.000Z",
+        "id": 1791990000,
+        "startTime": "2026-10-14T15:00:00.000Z",
+        "zone": "scosglen"
+      }
+    },
+    "world_boss": {
+      "url": "https://helltides-7e530-r1.firebaseio.com/world_boss.json",
+      "data": {
+        "boss": "Ashava",
+        "id": 1791995400,
+        "nextTime": "2026-10-14T20:00:00.000Z",
+        "startTime": "2026-10-14T16:30:00.000Z",
+        "zone": [
+          {
+            "boss": "Ashava",
+            "id": "scosglen",
+            "isWhisper": false,
+            "name": "Scosglen"
+          },
+          {
+            "boss": "Avarice",
+            "id": "nahantu",
+            "isWhisper": false,
+            "name": "Nahantu"
+          }
+        ]
+      }
+    },
+    "legion": {
+      "url": "https://helltides-7e530-r1.firebaseio.com/legion.json",
+      "data": {
+        "id": 1791989700,
+        "nextTime": "2026-10-14T15:20:00.000Z",
+        "startTime": "2026-10-14T14:55:00.000Z",
+        "zoneWindow": true
+      }
+    }
+  }
+}

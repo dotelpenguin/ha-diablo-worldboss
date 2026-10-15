@@ -1,0 +1,14 @@
+{
+  "domain": "diablo_worldboss",
+  "name": "Diablo World Events",
+  "version": "0.1.0",
+  "config_flow": true,
+  "documentation": "https://github.com/dotelpenguin/ha-diablo-worldboss",
+  "iot_class": "cloud_polling",
+  "requirements": [],
+  "codeowners": [
+    "@dotelpenguin"
+  ],
+  "issue_tracker": "https://github.com/dotelpenguin/ha-diablo-worldboss/issues",
+  "integration_type": "service"
+}

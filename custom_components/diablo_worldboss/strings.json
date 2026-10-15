@@ -1,0 +1,27 @@
+{
+  "title": "Diablo World Events",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Diablo World Events",
+        "description": "Read public Helltides event data. Event states become unavailable when schedule coverage expires.",
+        "data": {
+          "interval_minutes": "Fetch interval (minutes, 5\u2013120)"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Diablo World Events is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Polling options",
+        "data": {
+          "interval_minutes": "Fetch interval (minutes, 5\u2013120)"
+        }
+      }
+    }
+  }
+}

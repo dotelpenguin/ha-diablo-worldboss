@@ -102,3 +102,17 @@ instance is still pending; this is the initial custom integration release.
 # ha-diablo-worldboss
 # ha-diablo-worldboss
 # ha-diablo-worldboss
+
+
+## HACS development installation
+
+Add `https://github.com/dotelpenguin/ha-diablo-worldboss` under HACS → Custom
+repositories, with type **Integration**. Download **Diablo World Events**, restart
+Home Assistant, then add the integration under Settings → Devices & services.
+
+Development work is on the `dev` branch. HACS uses the repository's default
+branch when no releases are published. For branch-based development installation,
+`dev` must be the GitHub default branch; adding a `/tree/dev` URL does not select
+that branch in HACS. Otherwise use the manual installation above until a release
+is available. Repository default-branch settings are managed separately from
+local commits.
